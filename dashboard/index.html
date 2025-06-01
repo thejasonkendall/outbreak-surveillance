@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Outbreak Surveillance Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ee5a24;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .outbreaks-section {
+            padding: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 3px solid #ee5a24;
+            padding-bottom: 10px;
+        }
+        
+        .outbreak-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+        
+        .outbreak-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        
+        .outbreak-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .disease-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .severity-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .severity-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .severity-moderate {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .severity-low {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .outbreak-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .detail-label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        .refresh-btn {
+            background: #ee5a24;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 20px;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: #d63031;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .outbreak-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦠 Disease Outbreak Surveillance</h1>
+            <p>Real-time monitoring of global disease outbreaks</p>
+            <button class="refresh-btn" onclick="loadData()">🔄 Refresh Data</button>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading">Loading statistics...</div>
+        </div>
+        
+        <div class="outbreaks-section">
+            <h2 class="section-title">Active Outbreaks</h2>
+            <div id="outbreaksList">
+                <div class="loading">Loading outbreak data...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        async function loadData() {
+            try {
+                await Promise.all([
+                    loadSummary(),
+                    loadOutbreaks()
+                ]);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load data. Make sure your API is running on localhost:8000');
+            }
+        }
+        
+        async function loadSummary() {
+            try {
+                const response = await fetch(`${API_BASE}/outbreaks/summary`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${data.total_outbreaks}</div>
+                        <div class="stat-label">Total Outbreaks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.active_outbreaks}</div>
+                        <div class="stat-label">Active Outbreaks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.countries_affected}</div>
+                        <div class="stat-label">Countries Affected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.by_severity.high || 0}</div>
+                        <div class="stat-label">High Severity</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading summary:', error);
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="error">Error loading summary: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function loadOutbreaks() {
+            try {
+                const response = await fetch(`${API_BASE}/outbreaks`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const outbreaksList = document.getElementById('outbreaksList');
+                
+                if (data.outbreaks.length === 0) {
+                    outbreaksList.innerHTML = '<div class="loading">No outbreaks found</div>';
+                    return;
+                }
+                
+                outbreaksList.innerHTML = data.outbreaks.map(outbreak => `
+                    <div class="outbreak-card">
+                        <div class="outbreak-header">
+                            <div class="disease-name">${outbreak.disease_name}</div>
+                            <div class="severity-badge severity-${outbreak.severity_level}">
+                                ${outbreak.severity_level}
+                            </div>
+                        </div>
+                        
+                        <div class="outbreak-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Location</div>
+                                <div class="detail-value">${outbreak.location_country}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Date</div>
+                                <div class="detail-value">${new Date(outbreak.outbreak_date).toLocaleDateString()}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Cases</div>
+                                <div class="detail-value">${outbreak.reported_cases || 'Unknown'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Deaths</div>
+                                <div class="detail-value">${outbreak.reported_deaths || 'Unknown'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Status</div>
+                                <div class="detail-value">${outbreak.outbreak_status}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Source</div>
+                                <div class="detail-value">${outbreak.source_organization}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading outbreaks:', error);
+                document.getElementById('outbreaksList').innerHTML = `
+                    <div class="error">Error loading outbreaks: ${error.message}</div>
+                `;
+            }
+        }
+        
+        function showError(message) {
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="error">${message}</div>
+            `;
+            document.getElementById('outbreaksList').innerHTML = `
+                <div class="error">${message}</div>
+            `;
+        }
+        
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
