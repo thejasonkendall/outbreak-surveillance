@@ -30,7 +30,7 @@ def read_root():
 def get_outbreaks():
     """Get all outbreak data"""
     try:
-        response = supabase.table("outbreaks").select("*").order("outbreak_date", desc=True).execute()
+        response = supabase.table("outbreaks").select("*, intelligence_summary").order("outbreak_date", desc=True).execute()
         return {"outbreaks": response.data}
     except Exception as e:
         return {"error": str(e)}

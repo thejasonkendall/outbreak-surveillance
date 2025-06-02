@@ -338,6 +338,17 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        ${outbreak.intelligence_summary ? `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #ee5a24;">
+                            <div style="font-size: 0.8em; color: #666; text-transform: uppercase; margin-bottom: 8px; font-weight: bold;">
+                                🧠 AI Intelligence Summary
+                            </div>
+                            <div style="color: #333; line-height: 1.5; font-style: italic;">
+                                "${outbreak.intelligence_summary}"
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                 `).join('');
                 
