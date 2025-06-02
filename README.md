@@ -1,0 +1,334 @@
+# 🦠 Disease Outbreak Surveillance System
+
+An AI-powered autonomous agent for real-time global disease outbreak monitoring and intelligence analysis.
+
+## 🎯 Overview
+
+This system combines news monitoring, AI analysis, and real-time dashboards to provide public health intelligence on disease outbreaks worldwide. It uses Claude AI to analyze news articles like an epidemiologist and generates actionable outbreak intelligence.
+
+## 🏗️ Architecture
+
+```
+📰 NewsAPI → 🤖 Claude AI → 🗄️ Supabase → 🔌 FastAPI → 🖥️ Dashboard
+```
+
+**Data Pipeline Flow:**
+1. **NewsAPI** fetches outbreak-related news articles
+2. **Claude AI** analyzes articles and extracts structured intelligence 
+3. **Supabase** stores outbreak data with AI-generated summaries
+4. **FastAPI** serves data through REST endpoints
+5. **Dashboard** displays live outbreak intelligence
+6. **Autonomous Agent** runs the pipeline automatically
+
+## 🚀 Features
+
+- **AI-Powered Analysis**: Claude AI reads news articles like a human epidemiologist
+- **Real-time Intelligence**: Live dashboard with outbreak monitoring
+- **Autonomous Operation**: Runs continuously with scheduled surveillance
+- **Smart Extraction**: Extracts disease, location, severity, and case counts
+- **Confidence Scoring**: AI provides confidence levels for each analysis
+- **Intelligence Summaries**: Natural language explanations of outbreak significance
+- **Source Linking**: Direct links to original news articles
+
+## 📋 Prerequisites
+
+- Python 3.8+
+- Supabase account (free tier available)
+- NewsAPI key (free tier: 1000 requests/day)
+- Anthropic Claude API key
+- Modern web browser
+
+## ⚡ Quick Start
+
+### 1. Clone and Setup
+```bash
+git clone <your-repo-url>
+cd outbreak-surveillance
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install requests pandas python-dotenv fastapi uvicorn supabase anthropic
+pip freeze > requirements.txt
+```
+
+### 2. Configuration
+Create `.env` file:
+```bash
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+NEWS_API_KEY=your_newsapi_key
+ANTHROPIC_API_KEY=your_claude_api_key
+```
+
+### 3. Database Setup
+Run this SQL in your Supabase SQL Editor:
+```sql
+CREATE TABLE outbreaks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    disease_name VARCHAR NOT NULL,
+    location_country VARCHAR NOT NULL,
+    location_region VARCHAR,
+    outbreak_date DATE NOT NULL,
+    reported_cases INTEGER,
+    reported_deaths INTEGER,
+    outbreak_status VARCHAR DEFAULT 'active',
+    source_url TEXT,
+    source_organization VARCHAR,
+    severity_level VARCHAR,
+    intelligence_summary TEXT,
+    last_updated TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 4. Run the System
+```bash
+# Collect outbreak intelligence
+python data-pipeline/claude_news_collector.py
+
+# Start API server
+python api/main.py
+
+# Open dashboard/index.html in your browser
+```
+
+## 🔧 Detailed Setup
+
+### API Keys Setup
+
+#### Supabase
+1. Go to [supabase.com](https://supabase.com)
+2. Create account and new project
+3. Get URL and anon key from Settings → API
+
+#### NewsAPI  
+1. Go to [newsapi.org](https://newsapi.org)
+2. Sign up for free account
+3. Get API key from dashboard
+
+#### Claude AI
+1. Go to [console.anthropic.com](https://console.anthropic.com)
+2. Create account and add billing
+3. Generate API key
+4. Add $5-10 credits (very affordable)
+
+### Testing Connections
+```bash
+# Test database connection
+python test_connection.py
+
+# Test NewsAPI
+python test_newsapi.py
+
+# Test Claude AI
+python data-pipeline/ai_analyzer.py
+```
+
+## 🎮 Usage
+
+### Manual Operation
+```bash
+# 1. Activate environment
+source venv/bin/activate
+
+# 2. Collect outbreak intelligence
+python data-pipeline/claude_news_collector.py
+
+# 3. Start API server
+python api/main.py
+
+# 4. Open dashboard/index.html in browser
+```
+
+### Autonomous Operation
+```bash
+# Terminal 1: Start API server
+python api/main.py
+
+# Terminal 2: Start autonomous agent
+python data-pipeline/autonomous_agent.py
+
+# The agent will automatically:
+# - Run surveillance twice daily (9 AM and 9 PM UTC)
+# - Analyze new outbreak news with Claude AI
+# - Update the dashboard with new intelligence
+# - Generate daily briefings
+```
+
+### API Endpoints
+```bash
+# Get all outbreaks
+GET http://localhost:8000/outbreaks
+
+# Get outbreak summary statistics  
+GET http://localhost:8000/outbreaks/summary
+
+# Health check
+GET http://localhost:8000/
+```
+
+## 📊 Dashboard Features
+
+The web dashboard displays:
+- **Live outbreak cards** with disease, location, and case counts
+- **AI intelligence summaries** explaining outbreak significance
+- **Severity levels** assessed by Claude AI
+- **Confidence scores** for each analysis
+- **Direct links** to source news articles
+- **Real-time updates** as new outbreaks are detected
+
+## 🤖 AI Intelligence
+
+Claude AI analyzes each news article and extracts:
+- **Disease identification** and pathogen type
+- **Geographic location** (country and region)
+- **Case counts** and fatality rates
+- **Severity assessment** with reasoning
+- **Public health response** level
+- **Intelligence summary** in natural language
+- **Confidence scoring** for reliability
+
+Example AI Summary:
+> *"Significant cholera outbreak in Sudan with confirmed cases across multiple states amid humanitarian crisis, requiring immediate international attention"*
+
+## 📁 Project Structure
+
+```
+outbreak-surveillance/
+├── data-pipeline/
+│   ├── news_collector.py          # NewsAPI integration
+│   ├── ai_analyzer.py             # Claude AI analysis
+│   ├── claude_news_collector.py   # Combined news + AI pipeline
+│   └── autonomous_agent.py        # Autonomous surveillance agent
+├── api/
+│   └── main.py                    # FastAPI REST endpoints
+├── dashboard/
+│   └── index.html                 # Web dashboard
+├── briefings/                     # AI-generated daily reports
+├── .env                          # Configuration (not in git)
+├── requirements.txt              # Python dependencies
+└── README.md                     # This file
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**No outbreaks found:**
+```bash
+# Increase search timeframe
+# In claude_news_collector.py, change:
+articles = news_collector.fetch_outbreak_news(days_back=31, max_articles=15)
+```
+
+**API connection errors:**
+```bash
+# Check environment variables
+python -c "import os; print('NewsAPI:', bool(os.getenv('NEWS_API_KEY')))"
+python -c "import os; print('Claude:', bool(os.getenv('ANTHROPIC_API_KEY')))"
+```
+
+**Dashboard not updating:**
+```bash
+# Verify API is running
+curl http://localhost:8000/outbreaks
+
+# Check Supabase connection
+python test_connection.py
+```
+
+### Debug Commands
+```bash
+# Test individual components
+python data-pipeline/ai_analyzer.py
+python data-pipeline/news_collector.py
+python test_connection.py
+
+# Check API endpoints
+curl http://localhost:8000/outbreaks
+curl http://localhost:8000/outbreaks/summary
+```
+
+## 🚀 Deployment
+
+### Development
+```bash
+# API server
+python api/main.py
+
+# Autonomous agent
+python data-pipeline/autonomous_agent.py
+```
+
+### Production
+```bash
+# API server with gunicorn
+pip install gunicorn
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker api.main:app
+
+# Dashboard with nginx/apache
+# Serve dashboard/ directory as static files
+
+# Autonomous agent with supervisor/systemd
+# Set up process management for autonomous_agent.py
+```
+
+## 🔐 Security Notes
+
+- Keep `.env` file private (added to `.gitignore`)
+- Use environment variables for all API keys
+- Supabase Row Level Security policies recommended for production
+- Consider rate limiting for public deployments
+
+## 📈 Cost Estimates
+
+**Free Tier Usage:**
+- Supabase: Free (up to 500MB)
+- NewsAPI: Free (1000 requests/day)
+- Claude AI: ~$1-5/month for typical usage
+
+**Production Usage:**
+- Supabase: $25/month (Pro plan)
+- NewsAPI: $449/month (Business plan)
+- Claude AI: ~$10-50/month depending on volume
+
+## 🎯 Use Cases
+
+- **Public Health Surveillance**: Real-time outbreak monitoring
+- **Research**: Disease pattern analysis and trend identification  
+- **Policy Making**: Evidence-based health emergency responses
+- **Education**: Teaching outbreak surveillance concepts
+- **Portfolio Project**: Demonstrating AI + health tech skills
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+## 📜 License
+
+This project is released into the public domain under the Unlicense - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- **Claude AI** for intelligent news analysis
+- **Supabase** for real-time database infrastructure
+- **NewsAPI** for global news coverage
+- **WHO** and **CDC** for outbreak classification guidance
+
+## 📞 Support
+
+For questions or issues:
+1. Check the troubleshooting section above
+2. Review API documentation at `http://localhost:8000/docs`
+3. Open an issue on GitHub
+
+---
+
+**Built with ❤️ for global health surveillance and disease outbreak prevention.**
