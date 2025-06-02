@@ -18,13 +18,11 @@ This system combines news monitoring, AI analysis, and real-time dashboards to p
 3. **Supabase** stores outbreak data with AI-generated summaries
 4. **FastAPI** serves data through REST endpoints
 5. **Dashboard** displays live outbreak intelligence
-6. **Autonomous Agent** runs the pipeline automatically
 
 ## 🚀 Features
 
 - **AI-Powered Analysis**: Claude AI reads news articles like a human epidemiologist
 - **Real-time Intelligence**: Live dashboard with outbreak monitoring
-- **Autonomous Operation**: Runs continuously with scheduled surveillance
 - **Smart Extraction**: Extracts disease, location, severity, and case counts
 - **Confidence Scoring**: AI provides confidence levels for each analysis
 - **Intelligence Summaries**: Natural language explanations of outbreak significance
@@ -84,16 +82,6 @@ CREATE TABLE outbreaks (
 );
 ```
 
-### 4. Run the System
-```bash
-# Collect outbreak intelligence
-python data-pipeline/claude_news_collector.py
-
-# Start API server
-python api/main.py
-
-# Open dashboard/index.html in your browser
-```
 
 ## 🔧 Detailed Setup
 
@@ -106,7 +94,7 @@ python api/main.py
 
 #### NewsAPI  
 1. Go to [newsapi.org](https://newsapi.org)
-2. Sign up for free account
+2. Sign up for free account.
 3. Get API key from dashboard
 
 #### Claude AI
@@ -115,21 +103,10 @@ python api/main.py
 3. Generate API key
 4. Add $5-10 credits (very affordable)
 
-### Testing Connections
-```bash
-# Test database connection
-python test_connection.py
-
-# Test NewsAPI
-python test_newsapi.py
-
-# Test Claude AI
-python data-pipeline/ai_analyzer.py
-```
 
 ## 🎮 Usage
 
-### Manual Operation
+### Operation
 ```bash
 # 1. Activate environment
 source venv/bin/activate
@@ -143,20 +120,6 @@ python api/main.py
 # 4. Open dashboard/index.html in browser
 ```
 
-### Autonomous Operation
-```bash
-# Terminal 1: Start API server
-python api/main.py
-
-# Terminal 2: Start autonomous agent
-python data-pipeline/autonomous_agent.py
-
-# The agent will automatically:
-# - Run surveillance twice daily (9 AM and 9 PM UTC)
-# - Analyze new outbreak news with Claude AI
-# - Update the dashboard with new intelligence
-# - Generate daily briefings
-```
 
 ### API Endpoints
 ```bash
@@ -202,12 +165,10 @@ outbreak-surveillance/
 │   ├── news_collector.py          # NewsAPI integration
 │   ├── ai_analyzer.py             # Claude AI analysis
 │   ├── claude_news_collector.py   # Combined news + AI pipeline
-│   └── autonomous_agent.py        # Autonomous surveillance agent
 ├── api/
 │   └── main.py                    # FastAPI REST endpoints
 ├── dashboard/
 │   └── index.html                 # Web dashboard
-├── briefings/                     # AI-generated daily reports
 ├── .env                          # Configuration (not in git)
 ├── requirements.txt              # Python dependencies
 └── README.md                     # This file
@@ -224,29 +185,15 @@ outbreak-surveillance/
 articles = news_collector.fetch_outbreak_news(days_back=31, max_articles=15)
 ```
 
-**API connection errors:**
-```bash
-# Check environment variables
-python -c "import os; print('NewsAPI:', bool(os.getenv('NEWS_API_KEY')))"
-python -c "import os; print('Claude:', bool(os.getenv('ANTHROPIC_API_KEY')))"
-```
-
 **Dashboard not updating:**
 ```bash
 # Verify API is running
 curl http://localhost:8000/outbreaks
 
-# Check Supabase connection
-python test_connection.py
 ```
 
-### Debug Commands
+### Debug  
 ```bash
-# Test individual components
-python data-pipeline/ai_analyzer.py
-python data-pipeline/news_collector.py
-python test_connection.py
-
 # Check API endpoints
 curl http://localhost:8000/outbreaks
 curl http://localhost:8000/outbreaks/summary
@@ -263,18 +210,7 @@ python api/main.py
 python data-pipeline/autonomous_agent.py
 ```
 
-### Production
-```bash
-# API server with gunicorn
-pip install gunicorn
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker api.main:app
-
-# Dashboard with nginx/apache
-# Serve dashboard/ directory as static files
-
-# Autonomous agent with supervisor/systemd
-# Set up process management for autonomous_agent.py
-```
+### Production - Comming soon!
 
 ## 🔐 Security Notes
 
@@ -283,17 +219,6 @@ gunicorn -w 4 -k uvicorn.workers.UvicornWorker api.main:app
 - Supabase Row Level Security policies recommended for production
 - Consider rate limiting for public deployments
 
-## 📈 Cost Estimates
-
-**Free Tier Usage:**
-- Supabase: Free (up to 500MB)
-- NewsAPI: Free (1000 requests/day)
-- Claude AI: ~$1-5/month for typical usage
-
-**Production Usage:**
-- Supabase: $25/month (Pro plan)
-- NewsAPI: $449/month (Business plan)
-- Claude AI: ~$10-50/month depending on volume
 
 ## 🎯 Use Cases
 
@@ -327,7 +252,7 @@ This project is released into the public domain under the Unlicense - see the LI
 For questions or issues:
 1. Check the troubleshooting section above
 2. Review API documentation at `http://localhost:8000/docs`
-3. Open an issue on GitHub
+
 
 ---
 
