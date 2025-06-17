@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disease Outbreak Surveillance Dashboard</title>
+    <title>Health Intelligence Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -28,7 +28,7 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            background: linear-gradient(135deg, #00b894, #00a085);
             color: white;
             padding: 30px;
             text-align: center;
@@ -68,7 +68,7 @@
         .stat-number {
             font-size: 2.5em;
             font-weight: bold;
-            color: #ee5a24;
+            color: #00a085;
             margin-bottom: 10px;
         }
         
@@ -79,7 +79,41 @@
             letter-spacing: 1px;
         }
         
-        .outbreaks-section {
+        .filter-controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .filter-select, .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .search-input {
+            min-width: 200px;
+        }
+        
+        .intelligence-section {
             padding: 30px;
         }
         
@@ -87,11 +121,11 @@
             font-size: 1.8em;
             margin-bottom: 20px;
             color: #333;
-            border-bottom: 3px solid #ee5a24;
+            border-bottom: 3px solid #00a085;
             padding-bottom: 10px;
         }
         
-        .outbreak-card {
+        .intelligence-card {
             background: white;
             border: 1px solid #e9ecef;
             border-radius: 8px;
@@ -100,52 +134,86 @@
             transition: all 0.2s;
         }
         
-        .outbreak-card:hover {
+        .intelligence-card:hover {
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transform: translateY(-1px);
         }
         
-        .outbreak-header {
+        .intelligence-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            gap: 15px;
         }
         
-        .disease-name {
+        .intelligence-title {
             font-size: 1.3em;
             font-weight: bold;
             color: #333;
+            flex: 1;
+            line-height: 1.3;
         }
         
-        .severity-badge {
+        .badges-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+        
+        .topic-badge {
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.8em;
+            font-size: 0.75em;
             font-weight: bold;
             text-transform: uppercase;
         }
         
-        .severity-high {
+        .topic-policy { background: #e3f2fd; color: #1565c0; }
+        .topic-research { background: #f3e5f5; color: #7b1fa2; }
+        .topic-technology { background: #e8f5e8; color: #2e7d32; }
+        .topic-outbreak { background: #ffebee; color: #c62828; }
+        .topic-funding { background: #fff3e0; color: #ef6c00; }
+        .topic-regulation { background: #fce4ec; color: #ad1457; }
+        .topic-infrastructure { background: #e0f2f1; color: #00695c; }
+        .topic-mental_health { background: #f1f8e9; color: #558b2f; }
+        .topic-prevention { background: #e8eaf6; color: #3f51b5; }
+        .topic-disease { background: #ffebee; color: #c62828; }
+        
+        .significance-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .significance-critical {
             background: #ffebee;
             color: #c62828;
         }
         
-        .severity-moderate {
+        .significance-high {
             background: #fff3e0;
             color: #ef6c00;
         }
         
-        .severity-low {
+        .significance-moderate {
+            background: #fff8e1;
+            color: #f57c00;
+        }
+        
+        .significance-low {
             background: #e8f5e8;
             color: #2e7d32;
         }
         
-        .outbreak-details {
+        .intelligence-details {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
-            margin-top: 15px;
+            margin-bottom: 15px;
         }
         
         .detail-item {
@@ -165,6 +233,21 @@
             color: #333;
         }
         
+        .tags-container {
+            margin: 15px 0;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #f8f9fa;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin: 2px;
+            border: 1px solid #dee2e6;
+        }
+        
         .loading {
             text-align: center;
             padding: 50px;
@@ -180,7 +263,7 @@
         }
         
         .refresh-btn {
-            background: #ee5a24;
+            background: #00a085;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -192,7 +275,14 @@
         }
         
         .refresh-btn:hover {
-            background: #d63031;
+            background: #00b894;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
         }
         
         @media (max-width: 768px) {
@@ -204,10 +294,25 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             
-            .outbreak-header {
+            .intelligence-header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
+            }
+            
+            .badges-container {
+                align-items: flex-start;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-input {
+                min-width: auto;
             }
         }
     </style>
@@ -215,8 +320,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🦠 Disease Outbreak Surveillance</h1>
-            <p>Real-time monitoring of global disease outbreaks</p>
+            <h1>🏥 Health Intelligence Dashboard</h1>
+            <p>Real-time monitoring of global health developments</p>
             <button class="refresh-btn" onclick="loadData()">🔄 Refresh Data</button>
         </div>
         
@@ -224,22 +329,52 @@
             <div class="loading">Loading statistics...</div>
         </div>
         
-        <div class="outbreaks-section">
-            <h2 class="section-title">Active Outbreaks</h2>
-            <div id="outbreaksList">
-                <div class="loading">Loading outbreak data...</div>
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label class="filter-label">Topic</label>
+                <select class="filter-select" id="topicFilter" onchange="filterData()">
+                    <option value="">All Topics</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Significance</label>
+                <select class="filter-select" id="significanceFilter" onchange="filterData()">
+                    <option value="">All Levels</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Country</label>
+                <select class="filter-select" id="countryFilter" onchange="filterData()">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Search</label>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search intelligence..." oninput="filterData()">
+            </div>
+        </div>
+        
+        <div class="intelligence-section">
+            <h2 class="section-title">Health Intelligence</h2>
+            <div id="intelligenceList">
+                <div class="loading">Loading health intelligence data...</div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = `${window.location.protocol}//${window.location.host}`;
+        let allIntelligence = [];
         
         async function loadData() {
             try {
                 await Promise.all([
                     loadSummary(),
-                    loadOutbreaks()
+                    loadIntelligence()
                 ]);
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -249,7 +384,7 @@
         
         async function loadSummary() {
             try {
-                const response = await fetch(`${API_BASE}/outbreaks/summary`);
+                const response = await fetch(`${API_BASE}/intelligence/summary`);
                 const data = await response.json();
                 
                 if (data.error) {
@@ -259,22 +394,26 @@
                 const statsGrid = document.getElementById('statsGrid');
                 statsGrid.innerHTML = `
                     <div class="stat-card">
-                        <div class="stat-number">${data.total_outbreaks}</div>
-                        <div class="stat-label">Total Outbreaks</div>
+                        <div class="stat-number">${data.total_intelligence || 0}</div>
+                        <div class="stat-label">Total Intelligence</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${data.active_outbreaks}</div>
-                        <div class="stat-label">Active Outbreaks</div>
+                        <div class="stat-number">${data.high_significance || 0}</div>
+                        <div class="stat-label">High Significance</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${data.countries_affected}</div>
-                        <div class="stat-label">Countries Affected</div>
+                        <div class="stat-number">${(data.by_country || []).length}</div>
+                        <div class="stat-label">Countries Covered</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${data.by_severity.high || 0}</div>
-                        <div class="stat-label">High Severity</div>
+                        <div class="stat-number">${(data.by_topic || []).length}</div>
+                        <div class="stat-label">Health Topics</div>
                     </div>
                 `;
+                
+                // Populate filter dropdowns
+                populateFilters(data);
+                
             } catch (error) {
                 console.error('Error loading summary:', error);
                 document.getElementById('statsGrid').innerHTML = `
@@ -283,88 +422,170 @@
             }
         }
         
-        async function loadOutbreaks() {
+        function populateFilters(summaryData) {
+            // Populate topic filter
+            const topicFilter = document.getElementById('topicFilter');
+            const currentTopicValue = topicFilter.value;
+            topicFilter.innerHTML = '<option value="">All Topics</option>';
+            
+            if (summaryData.by_topic) {
+                summaryData.by_topic.forEach(topic => {
+                    const option = document.createElement('option');
+                    option.value = topic.health_topic;
+                    option.textContent = topic.health_topic.charAt(0).toUpperCase() + topic.health_topic.slice(1).replace('_', ' ');
+                    topicFilter.appendChild(option);
+                });
+            }
+            topicFilter.value = currentTopicValue;
+            
+            // Populate country filter
+            const countryFilter = document.getElementById('countryFilter');
+            const currentCountryValue = countryFilter.value;
+            countryFilter.innerHTML = '<option value="">All Countries</option>';
+            
+            if (summaryData.by_country) {
+                summaryData.by_country.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country.location_country;
+                    option.textContent = country.location_country;
+                    countryFilter.appendChild(option);
+                });
+            }
+            countryFilter.value = currentCountryValue;
+        }
+        
+        async function loadIntelligence() {
             try {
-                const response = await fetch(`${API_BASE}/outbreaks`);
+                const response = await fetch(`${API_BASE}/intelligence?limit=100`);
                 const data = await response.json();
                 
                 if (data.error) {
                     throw new Error(data.error);
                 }
                 
-                const outbreaksList = document.getElementById('outbreaksList');
-                
-                if (data.outbreaks.length === 0) {
-                    outbreaksList.innerHTML = '<div class="loading">No outbreaks found</div>';
-                    return;
-                }
-                
-                outbreaksList.innerHTML = data.outbreaks.map(outbreak => `
-                    <div class="outbreak-card">
-                        <div class="outbreak-header">
-                            <div class="disease-name">${outbreak.disease_name}</div>
-                            <div class="severity-badge severity-${outbreak.severity_level}">
-                                ${outbreak.severity_level}
-                            </div>
-                        </div>
-                        
-                        <div class="outbreak-details">
-                            <div class="detail-item">
-                                <div class="detail-label">Location</div>
-                                <div class="detail-value">${outbreak.location_country}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Date</div>
-                                <div class="detail-value">${new Date(outbreak.outbreak_date).toLocaleDateString()}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Cases</div>
-                                <div class="detail-value">${outbreak.reported_cases || 'Unknown'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Deaths</div>
-                                <div class="detail-value">${outbreak.reported_deaths || 'Unknown'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Status</div>
-                                <div class="detail-value">${outbreak.outbreak_status}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Source</div>
-                                <div class="detail-value">
-                                    <a href="${outbreak.source_url}" target="_blank" style="color: #ee5a24; text-decoration: none;">
-                                        ${outbreak.source_organization} →
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        ${outbreak.intelligence_summary ? `
-                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #ee5a24;">
-                            <div style="font-size: 0.8em; color: #666; text-transform: uppercase; margin-bottom: 8px; font-weight: bold;">
-                                🧠 AI Intelligence Summary
-                            </div>
-                            <div style="color: #333; line-height: 1.5; font-style: italic;">
-                                "${outbreak.intelligence_summary}"
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-                `).join('');
+                allIntelligence = data.intelligence || [];
+                displayIntelligence(allIntelligence);
                 
             } catch (error) {
-                console.error('Error loading outbreaks:', error);
-                document.getElementById('outbreaksList').innerHTML = `
-                    <div class="error">Error loading outbreaks: ${error.message}</div>
+                console.error('Error loading intelligence:', error);
+                document.getElementById('intelligenceList').innerHTML = `
+                    <div class="error">Error loading health intelligence: ${error.message}</div>
                 `;
             }
+        }
+        
+        function displayIntelligence(intelligence) {
+            const intelligenceList = document.getElementById('intelligenceList');
+            
+            if (intelligence.length === 0) {
+                intelligenceList.innerHTML = '<div class="no-data">No health intelligence found matching your criteria</div>';
+                return;
+            }
+            
+            intelligenceList.innerHTML = intelligence.map(item => `
+                <div class="intelligence-card">
+                    <div class="intelligence-header">
+                        <div class="intelligence-title">${item.title || 'Untitled'}</div>
+                        <div class="badges-container">
+                            <div class="topic-badge topic-${item.health_topic || 'unknown'}">
+                                ${(item.health_topic || 'unknown').replace('_', ' ')}
+                            </div>
+                            <div class="significance-badge significance-${item.significance_level || 'low'}">
+                                ${item.significance_level || 'low'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="intelligence-details">
+                        ${item.primary_focus ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Focus Area</div>
+                            <div class="detail-value">${item.primary_focus}</div>
+                        </div>
+                        ` : ''}
+                        ${item.location_country ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Location</div>
+                            <div class="detail-value">${item.location_country}${item.location_region ? `, ${item.location_region}` : ''}</div>
+                        </div>
+                        ` : ''}
+                        <div class="detail-item">
+                            <div class="detail-label">Date</div>
+                            <div class="detail-value">${item.article_date ? new Date(item.article_date).toLocaleDateString() : 'Unknown'}</div>
+                        </div>
+                        ${item.confidence_score ? `
+                        <div class="detail-item">
+                            <div class="detail-label">AI Confidence</div>
+                            <div class="detail-value">${Math.round(item.confidence_score * 100)}%</div>
+                        </div>
+                        ` : ''}
+                        <div class="detail-item">
+                            <div class="detail-label">Source</div>
+                            <div class="detail-value">
+                                <a href="${item.source_url}" target="_blank" style="color: #00a085; text-decoration: none;">
+                                    ${item.source_organization || 'View Article'} →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${item.intelligence_summary ? `
+                    <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #00a085;">
+                        <div style="font-size: 0.8em; color: #666; text-transform: uppercase; margin-bottom: 8px; font-weight: bold;">
+                            🧠 Intelligence Summary
+                        </div>
+                        <div style="color: #333; line-height: 1.5;">
+                            ${item.intelligence_summary}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${item.key_insights && item.key_insights.length > 0 ? `
+                    <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 6px; border-left: 4px solid #2e7d32;">
+                        <div style="font-size: 0.8em; color: #666; text-transform: uppercase; margin-bottom: 8px; font-weight: bold;">
+                            💡 Key Insights
+                        </div>
+                        <ul style="margin-left: 20px; color: #333;">
+                            ${item.key_insights.map(insight => `<li style="margin-bottom: 5px;">${insight}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+                    
+                    ${item.tags && item.tags.length > 0 ? `
+                    <div class="tags-container">
+                        ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function filterData() {
+            const topicFilter = document.getElementById('topicFilter').value;
+            const significanceFilter = document.getElementById('significanceFilter').value;
+            const countryFilter = document.getElementById('countryFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = allIntelligence.filter(item => {
+                const matchesTopic = !topicFilter || item.health_topic === topicFilter;
+                const matchesSignificance = !significanceFilter || item.significance_level === significanceFilter;
+                const matchesCountry = !countryFilter || item.location_country === countryFilter;
+                const matchesSearch = !searchTerm || 
+                    (item.title || '').toLowerCase().includes(searchTerm) ||
+                    (item.intelligence_summary || '').toLowerCase().includes(searchTerm) ||
+                    (item.primary_focus || '').toLowerCase().includes(searchTerm);
+                
+                return matchesTopic && matchesSignificance && matchesCountry && matchesSearch;
+            });
+            
+            displayIntelligence(filtered);
         }
         
         function showError(message) {
             document.getElementById('statsGrid').innerHTML = `
                 <div class="error">${message}</div>
             `;
-            document.getElementById('outbreaksList').innerHTML = `
+            document.getElementById('intelligenceList').innerHTML = `
                 <div class="error">${message}</div>
             `;
         }

@@ -1,0 +1,132 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  APPLICATION_NAME: "health-intelligence-app"
+  DEPLOYMENT_GROUP_NAME: "health-intelligence-deployment-group"
+
+# Build and push Docker images
+build_images:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - apk add --no-cache aws-cli
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_API_REPO
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_DASHBOARD_REPO
+  script:
+    - |
+      # Build and push API image
+      echo "Building API image..."
+      docker build -f Dockerfile.api -t $ECR_API_REPO:$CI_COMMIT_SHA .
+      docker build -f Dockerfile.api -t $ECR_API_REPO:latest .
+      docker push $ECR_API_REPO:$CI_COMMIT_SHA
+      docker push $ECR_API_REPO:latest
+      echo "Successfully pushed API image: $ECR_API_REPO:$CI_COMMIT_SHA"
+      
+      # Build and push Dashboard image
+      echo "Building Dashboard image..."
+      docker build -f Dockerfile.dashboard -t $ECR_DASHBOARD_REPO:$CI_COMMIT_SHA .
+      docker build -f Dockerfile.dashboard -t $ECR_DASHBOARD_REPO:latest .
+      docker push $ECR_DASHBOARD_REPO:$CI_COMMIT_SHA
+      docker push $ECR_DASHBOARD_REPO:latest
+      echo "Successfully pushed Dashboard image: $ECR_DASHBOARD_REPO:$CI_COMMIT_SHA"
+      
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - changes:
+        - api/**/*
+        - dashboard/**/*
+        - nginx/**/*
+        - database/**/*
+        - Dockerfile.api
+        - Dockerfile.dashboard
+        - requirements.txt
+
+# Deploy using AWS CodeDeploy
+deploy_to_aws:
+  stage: deploy
+  image: 
+    name: amazon/aws-cli:latest
+    entrypoint: ["/bin/sh", "-c"]
+  before_script:
+    - yum install -y zip  # Use yum instead of apk for Amazon Linux
+  script:
+    - |
+      echo "Creating deployment package..."
+      
+      # Debug: Check current directory and files
+      echo "Current directory: $(pwd)"
+      echo "Files in current directory:"
+      ls -la
+      echo "Looking for appspec.yml:"
+      find . -name "appspec.yml" -o -name "AppSpec.yml" -o -name "appspec.yaml"
+      
+      # Create deployment directory
+      mkdir -p deployment-package
+      
+      # Copy deployment files (no longer need dashboard/nginx directories)
+      if [ -f docker-compose.prod.yml ]; then
+        cp docker-compose.prod.yml deployment-package/docker-compose.yml
+      else
+        echo "ERROR: docker-compose.prod.yml not found"
+        exit 1
+      fi
+      
+      if [ -f appspec.yml ]; then
+        cp appspec.yml deployment-package/
+      else
+        echo "ERROR: appspec.yml not found"
+        exit 1
+      fi
+      
+      # Copy scripts directory
+      if [ -d scripts ]; then
+        cp scripts/deploy.sh deployment-package/
+        cp scripts/start_server.sh deployment-package/
+        cp scripts/stop_server.sh deployment-package/
+      else
+        echo "ERROR: scripts directory not found"
+        exit 1
+      fi
+      
+      # Replace image tags in docker-compose with current commit SHA
+      sed -i "s|\${API_IMAGE_TAG}|$CI_COMMIT_SHA|g" deployment-package/docker-compose.yml
+      sed -i "s|\${DASHBOARD_IMAGE_TAG}|$CI_COMMIT_SHA|g" deployment-package/docker-compose.yml
+      sed -i "s|\${ECR_API_REPO}|$ECR_API_REPO|g" deployment-package/docker-compose.yml
+      sed -i "s|\${ECR_DASHBOARD_REPO}|$ECR_DASHBOARD_REPO|g" deployment-package/docker-compose.yml
+      
+      # Create deployment package
+      cd deployment-package
+      zip -r ../deployment-package.zip .
+      cd ..
+      
+      # Upload to S3
+      aws s3 cp deployment-package.zip s3://$CODEDEPLOY_S3_BUCKET/health-intelligence/$CI_COMMIT_SHA/deployment-package.zip
+      
+      # Create CodeDeploy deployment
+      DEPLOYMENT_ID=$(aws deploy create-deployment \
+        --application-name $APPLICATION_NAME \
+        --deployment-group-name $DEPLOYMENT_GROUP_NAME \
+        --s3-location bucket=$CODEDEPLOY_S3_BUCKET,key=health-intelligence/$CI_COMMIT_SHA/deployment-package.zip,bundleType=zip \
+        --deployment-config-name CodeDeployDefault.AllAtOnce \
+        --description "Deploy commit $CI_COMMIT_SHA" \
+        --query 'deploymentId' \
+        --output text)
+      
+      echo "Started deployment: $DEPLOYMENT_ID"
+      
+      # Wait for deployment to complete
+      aws deploy wait deployment-successful --deployment-id $DEPLOYMENT_ID
+      
+      echo "Deployment completed successfully!"
+      
+  dependencies:
+    - build_images
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual

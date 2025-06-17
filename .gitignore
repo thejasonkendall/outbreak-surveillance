@@ -24,3 +24,13 @@ config/local_config.py
 *.log
 data/raw/
 .pytest_cache/
+start.sh
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+.terraform.tfstate.lock.info

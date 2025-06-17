@@ -1,14 +1,18 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
+import sys
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List, Dict, Optional
+from datetime import datetime, date
+import logging
 
-load_dotenv()
+# Add the parent directory to the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database.connection import db
 
-app = FastAPI(title="Outbreak Surveillance API")
+app = FastAPI(title="Health Intelligence API", version="2.0.0")
 
-# Enable CORS for frontend
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,52 +21,248 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Supabase
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_ANON_KEY")
-supabase: Client = create_client(url, key)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.get("/")
-def read_root():
-    return {"message": "Outbreak Surveillance API"}
+async def root():
+    return {"message": "Health Intelligence API", "status": "running"}
 
-@app.get("/outbreaks")
-def get_outbreaks():
-    """Get all outbreak data"""
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
     try:
-        response = supabase.table("outbreaks").select("*, intelligence_summary").order("outbreak_date", desc=True).execute()
-        return {"outbreaks": response.data}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/outbreaks/summary")
-def get_outbreak_summary():
-    """Get outbreak summary statistics"""
-    try:
-        response = supabase.table("outbreaks").select("*").execute()
-        data = response.data
+        # Test database connection
+        result = db.execute_query("SELECT 1 as status")
         
-        summary = {
-            "total_outbreaks": len(data),
-            "active_outbreaks": len([o for o in data if o["outbreak_status"] == "active"]),
-            "countries_affected": len(set(o["location_country"] for o in data)),
-            "by_severity": {},
-            "by_disease": {}
+        response = {
+            "status": "healthy", 
+            "database": "connected"
         }
         
-        # Count by severity
-        for outbreak in data:
-            severity = outbreak.get("severity_level", "unknown")
-            summary["by_severity"][severity] = summary["by_severity"].get(severity, 0) + 1
         
-        # Count by disease
-        for outbreak in data:
-            disease = outbreak.get("disease_name", "unknown")
-            summary["by_disease"][disease] = summary["by_disease"].get(disease, 0) + 1
-            
-        return summary
+        return response
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unavailable")
+
+@app.get("/intelligence")
+async def get_health_intelligence(
+    limit: int = 100,
+    country: Optional[str] = None,
+    topic: Optional[str] = None,
+    focus: Optional[str] = None,
+    significance: Optional[str] = None
+):
+    """Get health intelligence with optional filtering"""
+    
+    try:
+        query = "SELECT * FROM health_intelligence WHERE 1=1"
+        params = []
+        param_count = 1
+        
+        if country:
+            query += f" AND location_country ILIKE ${param_count}"
+            params.append(f"%{country}%")
+            param_count += 1
+            
+        if topic:
+            query += f" AND health_topic ILIKE ${param_count}"
+            params.append(f"%{topic}%")
+            param_count += 1
+            
+        if focus:
+            query += f" AND primary_focus ILIKE ${param_count}"
+            params.append(f"%{focus}%")
+            param_count += 1
+            
+        if significance:
+            query += f" AND significance_level = ${param_count}"
+            params.append(significance)
+            param_count += 1
+        
+        query += f" ORDER BY created_at DESC LIMIT ${param_count}"
+        params.append(limit)
+        
+        # Convert psycopg2 query format
+        formatted_query = query
+        for i, param in enumerate(params, 1):
+            formatted_query = formatted_query.replace(f"${i}", "%s")
+        
+        intelligence = db.execute_query(formatted_query, params)
+        
+        # Convert datetime objects to strings for JSON serialization
+        for item in intelligence:
+            for key, value in item.items():
+                if isinstance(value, (datetime, date)):
+                    item[key] = value.isoformat()
+        
+        result = {"intelligence": intelligence, "count": len(intelligence)}
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error fetching health intelligence: {e}")
+        
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/intelligence/summary")
+async def get_intelligence_summary():
+    """Get health intelligence summary statistics"""
+    try:
+        # Total count
+        total_query = "SELECT COUNT(*) as total FROM health_intelligence"
+        total_result = db.execute_query(total_query)
+        total_intelligence = total_result[0]['total']
+        
+        # High significance count
+        high_sig_query = "SELECT COUNT(*) as high_sig FROM health_intelligence WHERE significance_level IN ('high', 'critical')"
+        high_sig_result = db.execute_query(high_sig_query)
+        high_significance = high_sig_result[0]['high_sig']
+        
+        # By country
+        country_query = """
+            SELECT location_country, COUNT(*) as count 
+            FROM health_intelligence 
+            WHERE location_country IS NOT NULL
+            GROUP BY location_country 
+            ORDER BY count DESC 
+            LIMIT 10
+        """
+        country_stats = db.execute_query(country_query)
+        
+        # By health topic
+        topic_query = """
+            SELECT health_topic, COUNT(*) as count 
+            FROM health_intelligence 
+            GROUP BY health_topic 
+            ORDER BY count DESC 
+            LIMIT 10
+        """
+        topic_stats = db.execute_query(topic_query)
+        
+        # By significance level
+        significance_query = """
+            SELECT significance_level, COUNT(*) as count 
+            FROM health_intelligence 
+            GROUP BY significance_level 
+            ORDER BY count DESC
+        """
+        significance_stats = db.execute_query(significance_query)
+        
+        # Recent high-significance items
+        recent_high_query = """
+            SELECT title, health_topic, primary_focus, significance_level, created_at
+            FROM health_intelligence 
+            WHERE significance_level IN ('high', 'critical')
+            ORDER BY created_at DESC 
+            LIMIT 5
+        """
+        recent_high = db.execute_query(recent_high_query)
+        
+        # Convert datetime objects for recent items
+        for item in recent_high:
+            for key, value in item.items():
+                if isinstance(value, (datetime, date)):
+                    item[key] = value.isoformat()
+        
+        return {
+            "total_intelligence": total_intelligence,
+            "high_significance": high_significance,
+            "by_country": country_stats,
+            "by_topic": topic_stats,
+            "by_significance": significance_stats,
+            "recent_high_significance": recent_high
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating intelligence summary: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/intelligence/{intelligence_id}")
+async def get_intelligence_by_id(intelligence_id: str):
+    """Get specific health intelligence by ID"""
+    try:
+        query = "SELECT * FROM health_intelligence WHERE id = %s"
+        result = db.execute_query(query, [intelligence_id])
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Health intelligence not found")
+        
+        intelligence = result[0]
+        
+        # Convert datetime objects to strings
+        for key, value in intelligence.items():
+            if isinstance(value, (datetime, date)):
+                intelligence[key] = value.isoformat()
+        
+        return intelligence
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching health intelligence {intelligence_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/intelligence/topics")
+async def get_health_topics():
+    """Get list of available health topics"""
+    try:
+        query = """
+            SELECT health_topic, COUNT(*) as count, 
+                   MAX(created_at) as latest_update
+            FROM health_intelligence 
+            GROUP BY health_topic 
+            ORDER BY count DESC
+        """
+        topics = db.execute_query(query)
+        
+        # Convert datetime objects to strings
+        for topic in topics:
+            for key, value in topic.items():
+                if isinstance(value, (datetime, date)):
+                    topic[key] = value.isoformat()
+        
+        return {"topics": topics}
+        
+    except Exception as e:
+        logger.error(f"Error fetching health topics: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/intelligence/search")
+async def search_intelligence(
+    q: str,
+    limit: int = 50
+):
+    """Search health intelligence by keywords"""
+    try:
+        query = """
+            SELECT * FROM health_intelligence 
+            WHERE 
+                title ILIKE %s OR 
+                intelligence_summary ILIKE %s OR 
+                primary_focus ILIKE %s OR
+                array_to_string(tags, ' ') ILIKE %s
+            ORDER BY created_at DESC 
+            LIMIT %s
+        """
+        
+        search_term = f"%{q}%"
+        params = [search_term, search_term, search_term, search_term, limit]
+        
+        results = db.execute_query(query, params)
+        
+        # Convert datetime objects to strings
+        for item in results:
+            for key, value in item.items():
+                if isinstance(value, (datetime, date)):
+                    item[key] = value.isoformat()
+        
+        return {"results": results, "count": len(results), "query": q}
+        
+    except Exception as e:
+        logger.error(f"Error searching health intelligence: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 if __name__ == "__main__":
     import uvicorn
